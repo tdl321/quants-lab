@@ -19,6 +19,8 @@ class BacktestingEngine:
         self._bt_engine = custom_backtester if custom_backtester is not None else BacktestingEngineBase()
         if load_cached_data:
             self._load_candles_cache()
+            self._load_funding_cache()
+            self._register_mock_connectors()
 
     def _load_candles_cache(self):
         # Use centralized data paths
@@ -48,6 +50,43 @@ class BacktestingEngine:
                 self._bt_engine.backtesting_data_provider.end_time = end_time
             except Exception as e:
                 logger.error(f"Error loading {file}: {e}")
+
+    def _load_funding_cache(self):
+        """Load funding rate data from parquet files."""
+        # Use centralized data paths - load from clean directory
+        funding_path = data_paths.project_root / 'app' / 'data' / 'cache' / 'funding' / 'clean'
+
+        if not funding_path.exists():
+            logger.warning(f"Funding directory {funding_path} does not exist.")
+            return
+
+        # Call data provider's loader
+        self._bt_engine.backtesting_data_provider.load_funding_rate_data(funding_path)
+        logger.info("✅ Funding cache loaded successfully")
+
+    def _register_mock_connectors(self):
+        """
+        Register mock perpetual connectors for backtesting.
+
+        These connectors return historical funding data during simulation.
+        """
+        from core.backtesting.mock_perpetual_connectors import (
+            ExtendedPerpetualMockConnector,
+            LighterPerpetualMockConnector
+        )
+
+        data_provider = self._bt_engine.backtesting_data_provider
+
+        # Create mock connectors
+        extended_connector = ExtendedPerpetualMockConnector(data_provider)
+        lighter_connector = LighterPerpetualMockConnector(data_provider)
+
+        # Register in data provider's connectors dict
+        # This allows strategy to access them
+        data_provider.connectors["extended_perpetual"] = extended_connector
+        data_provider.connectors["lighter_perpetual"] = lighter_connector
+
+        logger.info("✅ Registered mock perpetual connectors: extended_perpetual, lighter_perpetual")
 
     def load_candles_cache_by_connector_pair(self, connector_name: str, trading_pair: str):
             # Use centralized data paths
