@@ -34,6 +34,7 @@ class MockPerpetualConnectorBase:
         self.data_provider = data_provider
         self._position_mode = PositionMode.ONEWAY
         self._leverage = {}
+        self.trading_rules = {}  # Trading rules (populated by backtesting engine)
 
     def set_position_mode(self, position_mode: PositionMode):
         """Set position mode (ONEWAY or HEDGE)."""
@@ -42,6 +43,11 @@ class MockPerpetualConnectorBase:
     def set_leverage(self, trading_pair: str, leverage: int):
         """Set leverage for a trading pair."""
         self._leverage[trading_pair] = leverage
+
+    async def _update_trading_rules(self):
+        """Update trading rules (mock implementation for backtesting)."""
+        # Mock implementation - no actual API calls needed in backtesting
+        pass
 
     def get_funding_info(self, trading_pair: str) -> Optional[FundingInfo]:
         """
@@ -74,16 +80,16 @@ class MockPerpetualConnectorBase:
         """
         Return trading fee for the exchange.
 
-        Fee structure:
-        - Extended: 0.02% maker, 0.05% taker
-        - Lighter: 0.01% maker, 0.03% taker
+        Actual fee structure (verified 2025-11-05):
+        - Extended: 0% maker, 0.025% taker (market orders)
+        - Lighter: 0% maker, 0% taker (NO FEES)
         """
         if self.connector_name == "extended_perpetual":
-            maker_fee = Decimal("0.0002")
-            taker_fee = Decimal("0.0005")
+            maker_fee = Decimal("0.0")
+            taker_fee = Decimal("0.00025")  # 0.025%
         elif self.connector_name == "lighter_perpetual":
-            maker_fee = Decimal("0.0001")
-            taker_fee = Decimal("0.0003")
+            maker_fee = Decimal("0.0")
+            taker_fee = Decimal("0.0")  # NO FEES
         else:
             # Default fees
             maker_fee = Decimal("0.0005")

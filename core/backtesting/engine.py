@@ -20,6 +20,7 @@ class BacktestingEngine:
         if load_cached_data:
             self._load_candles_cache()
             self._load_funding_cache()
+            self._generate_synthetic_candles()  # Generate synthetic candles for mock connectors
             self._register_mock_connectors()
 
     def _load_candles_cache(self):
@@ -63,6 +64,70 @@ class BacktestingEngine:
         # Call data provider's loader
         self._bt_engine.backtesting_data_provider.load_funding_rate_data(funding_path)
         logger.info("✅ Funding cache loaded successfully")
+
+    def _generate_synthetic_candles(self):
+        """
+        Generate synthetic candles data for tokens that don't have historical candles.
+
+        Uses reasonable price estimates for common tokens.
+        """
+        # Approximate token prices (USD)
+        token_prices = {
+            "KAITO": 0.50,
+            "IP": 1.20,
+            "GRASS": 0.80,
+            "ZEC": 35.00,
+            "APT": 8.50,
+            "SUI": 1.50,
+            "TRUMP": 3.00,
+            "LDO": 2.00,
+            "OP": 1.80,
+            "SEI": 0.40,
+        }
+
+        data_provider = self._bt_engine.backtesting_data_provider
+
+        # Generate candles for both connectors
+        for connector in ["extended_perpetual", "lighter_perpetual"]:
+            for token, price in token_prices.items():
+                trading_pair = f"{token}-USD"
+                feed_key = f"{connector}_{trading_pair}_1h"
+
+                # Create synthetic hourly candles covering the data range
+                # Use funding data timestamps as reference
+                funding_key = f"{connector}_{trading_pair}"
+                if funding_key not in data_provider.funding_feeds:
+                    continue
+
+                funding_df = data_provider.funding_feeds[funding_key]
+                timestamps = funding_df['timestamp'].values
+
+                # Generate candles with small random variation around base price
+                import numpy as np
+                candles_data = {
+                    'timestamp': timestamps,
+                    'open': price * (1 + np.random.uniform(-0.01, 0.01, len(timestamps))),
+                    'high': price * (1 + np.random.uniform(0, 0.02, len(timestamps))),
+                    'low': price * (1 + np.random.uniform(-0.02, 0, len(timestamps))),
+                    'close': price * (1 + np.random.uniform(-0.01, 0.01, len(timestamps))),
+                    'volume': 1000000,  # Dummy volume
+                    'quote_asset_volume': 1000000 * price,
+                    'n_trades': 1000,
+                    'taker_buy_base_volume': 500000,
+                    'taker_buy_quote_volume': 500000 * price,
+                }
+
+                candles = pd.DataFrame(candles_data)
+                # Set timestamp as index for efficient lookups
+                candles.index = pd.to_datetime(candles.timestamp, unit='s')
+                candles.index.name = None
+                # Also ensure timestamp column remains as unix timestamp for compatibility
+                candles['timestamp'] = timestamps
+
+                data_provider.candles_feeds[feed_key] = candles
+                logger.debug(f"Generated {len(candles)} candles for {feed_key}")
+
+        logger.info(f"✅ Generated synthetic candles for {len(token_prices)} tokens across 2 connectors")
 
     def _register_mock_connectors(self):
         """
