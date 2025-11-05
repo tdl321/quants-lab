@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(jupyter notebook:*)",
+      "Bash(jupyter kernelspec:*)",
+      "Bash(python -c:*)",
+      "WebFetch(domain:hummingbot.org)",
+      "Read(//Users/tdl321/hummingbot/hummingbot/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

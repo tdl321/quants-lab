@@ -12,7 +12,7 @@ from decimal import Decimal
 from typing import Optional
 from hummingbot.core.data_type.funding_info import FundingInfo
 from hummingbot.core.data_type.common import PositionMode, OrderType, TradeType, PositionAction
-from hummingbot.connector.utils import TradeFeeSchema
+from hummingbot.core.data_type.trade_fee import TradeFeeSchema
 
 
 class MockPerpetualConnectorBase:

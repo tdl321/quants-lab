@@ -54,7 +54,7 @@ class BacktestingEngine:
     def _load_funding_cache(self):
         """Load funding rate data from parquet files."""
         # Use centralized data paths - load from clean directory
-        funding_path = data_paths.project_root / 'app' / 'data' / 'cache' / 'funding' / 'clean'
+        funding_path = data_paths.base_path / 'app' / 'data' / 'cache' / 'funding' / 'clean'
 
         if not funding_path.exists():
             logger.warning(f"Funding directory {funding_path} does not exist.")
